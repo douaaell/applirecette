@@ -1,0 +1,224 @@
+// Script pour vérifier et corriger le rôle des utilisateurs
+// Usage: 
+//   - Lister tous les admins: node scripts/verifierRole.js list-admins
+//   - Vérifier un utilisateur: node scripts/verifierRole.js <email>
+//   - Corriger un utilisateur: node scripts/verifierRole.js <email> <role>
+//   - Corriger tous les admins: node scripts/verifierRole.js fix-all-admins
+// Exemple: node scripts/verifierRole.js dou@test.com ADMIN
+
+require('dotenv').config();
+const mongoose = require('mongoose');
+const Utilisateur = require('../models/Utilisateur');
+
+const connectDB = async () => {
+    try {
+        // Utiliser la même URI que l'application
+        const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/recetteApp';
+        const conn = await mongoose.connect(MONGODB_URI);
+        console.log(`✅ MongoDB connecté: ${conn.connection.host}`);
+        console.log(`   Base de données: ${conn.connection.name}`);
+        console.log(`   URI utilisée: ${MONGODB_URI}`);
+    } catch (error) {
+        console.error('❌ Erreur connexion MongoDB:', error);
+        process.exit(1);
+    }
+};
+
+const listerAdmins = async () => {
+    await connectDB();
+    try {
+        // Chercher avec différentes variantes pour être sûr
+        const admins1 = await Utilisateur.find({ role: 'ADMIN' });
+        const admins2 = await Utilisateur.find({ role: 'admin' });
+        const admins3 = await Utilisateur.find({ role: /^admin$/i }); // Case insensitive
+        
+        // Combiner et dédupliquer
+        const allAdmins = [...admins1, ...admins2, ...admins3];
+        const uniqueAdmins = Array.from(new Map(allAdmins.map(a => [a._id.toString(), a])).values());
+        
+        console.log(`\n👨‍💼 ${uniqueAdmins.length} administrateur(s) trouvé(s):\n`);
+        uniqueAdmins.forEach((admin, index) => {
+            console.log(`${index + 1}. ${admin.prenom} ${admin.nom}`);
+            console.log(`   Email: ${admin.email}`);
+            console.log(`   UID: ${admin.uid}`);
+            console.log(`   Rôle actuel: ${admin.role} (type: ${typeof admin.role})`);
+            console.log('');
+        });
+        
+        // Aussi lister tous les utilisateurs pour debug
+        const tous = await Utilisateur.find({});
+        console.log(`\n📊 Total utilisateurs dans la base: ${tous.length}`);
+        console.log(`   Rôles trouvés:`, [...new Set(tous.map(u => u.role))]);
+        
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        process.exit(1);
+    }
+};
+
+const corrigerTousAdmins = async () => {
+    await connectDB();
+    try {
+        // D'abord, lister tous les utilisateurs pour voir ce qui se passe
+        const tous = await Utilisateur.find({});
+        console.log(`\n📊 Total utilisateurs dans la base: ${tous.length}`);
+        
+        // Chercher avec différentes variantes
+        const admins1 = await Utilisateur.find({ role: 'ADMIN' });
+        const admins2 = await Utilisateur.find({ role: 'admin' });
+        const admins3 = await Utilisateur.find({ role: /^admin$/i });
+        
+        console.log(`   Admins trouvés avec 'ADMIN': ${admins1.length}`);
+        console.log(`   Admins trouvés avec 'admin': ${admins2.length}`);
+        console.log(`   Admins trouvés avec regex: ${admins3.length}`);
+        
+        // Afficher tous les rôles uniques
+        const rolesUniques = [...new Set(tous.map(u => u.role))];
+        console.log(`   Rôles uniques dans la base:`, rolesUniques);
+        
+        // Afficher tous les utilisateurs pour debug
+        console.log('\n📋 Détails de tous les utilisateurs:');
+        tous.forEach((u, idx) => {
+            console.log(`   ${idx + 1}. ${u.email} - Rôle: "${u.role}" (type: ${typeof u.role})`);
+        });
+        
+        // Chercher manuellement dans tous les utilisateurs
+        const adminsManuels = tous.filter(u => {
+            const roleStr = String(u.role || '').toUpperCase();
+            return roleStr === 'ADMIN';
+        });
+        
+        // Si aucun admin trouvé mais qu'on sait qu'il devrait y en avoir, 
+        // on peut forcer la mise à jour pour des emails spécifiques
+        const emailsAdmins = ['dou@test.com', 'demo@test.com'];
+        const adminsAForcer = tous.filter(u => emailsAdmins.includes(u.email));
+        
+        console.log(`\n🔧 Vérification de ${adminsManuels.length} administrateur(s) trouvé(s) manuellement...`);
+        console.log(`🔧 ${adminsAForcer.length} utilisateur(s) à forcer en ADMIN (dou@test.com, demo@test.com)...\n`);
+        
+        let corriges = 0;
+        
+        // D'abord corriger ceux trouvés manuellement
+        for (const admin of adminsManuels) {
+            const roleActuel = String(admin.role || '').toUpperCase();
+            if (roleActuel !== 'ADMIN') {
+                console.log(`⚠️  Correction: ${admin.email} (était "${admin.role}")`);
+                admin.role = 'ADMIN';
+                await admin.save();
+                corriges++;
+            } else {
+                // S'assurer que c'est bien stocké comme 'ADMIN' en majuscules
+                if (admin.role !== 'ADMIN') {
+                    console.log(`⚠️  Normalisation: ${admin.email} (était "${admin.role}")`);
+                    admin.role = 'ADMIN';
+                    await admin.save();
+                    corriges++;
+                } else {
+                    console.log(`✅ ${admin.email} - Rôle correct: ${admin.role}`);
+                }
+            }
+        }
+        
+        // Ensuite forcer les emails connus pour être admin
+        for (const user of adminsAForcer) {
+            if (user.role !== 'ADMIN') {
+                console.log(`🔧 FORCE: ${user.email} -> ADMIN (était "${user.role}")`);
+                user.role = 'ADMIN';
+                await user.save();
+                corriges++;
+            } else {
+                console.log(`✅ ${user.email} - Déjà ADMIN`);
+            }
+        }
+        
+        // Utiliser updateMany pour forcer directement dans MongoDB (bypass Mongoose)
+        if (emailsAdmins.length > 0) {
+            console.log(`\n🔧 Mise à jour directe dans MongoDB pour: ${emailsAdmins.join(', ')}`);
+            const result = await Utilisateur.updateMany(
+                { email: { $in: emailsAdmins } },
+                { $set: { role: 'ADMIN' } }
+            );
+            console.log(`   ${result.modifiedCount} document(s) modifié(s)`);
+            if (result.modifiedCount > 0) {
+                corriges += result.modifiedCount;
+            }
+        }
+        
+        // Vérification finale
+        const verification = await Utilisateur.find({ email: { $in: emailsAdmins } });
+        console.log(`\n📋 Vérification finale:`);
+        verification.forEach(u => {
+            console.log(`   ${u.email}: ${u.role}`);
+        });
+        
+        console.log(`\n✅ Vérification terminée. ${corriges} correction(s) effectuée(s).`);
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        process.exit(1);
+    }
+};
+
+const verifierRole = async () => {
+    const command = process.argv[2];
+    const email = process.argv[2];
+    const nouveauRole = process.argv[3]?.toUpperCase();
+
+    // Commandes spéciales
+    if (command === 'list-admins') {
+        await listerAdmins();
+        return;
+    }
+    
+    if (command === 'fix-all-admins') {
+        await corrigerTousAdmins();
+        return;
+    }
+
+    if (!email || email.includes('@') === false) {
+        console.error('❌ Usage:');
+        console.log('   Lister tous les admins: node scripts/verifierRole.js list-admins');
+        console.log('   Vérifier un utilisateur: node scripts/verifierRole.js <email>');
+        console.log('   Corriger un utilisateur: node scripts/verifierRole.js <email> <role>');
+        console.log('   Corriger tous les admins: node scripts/verifierRole.js fix-all-admins');
+        console.log('\n   Exemple: node scripts/verifierRole.js dou@test.com ADMIN');
+        process.exit(1);
+    }
+
+    await connectDB();
+
+    try {
+        const utilisateur = await Utilisateur.findOne({ email });
+
+        if (!utilisateur) {
+            console.error(`❌ Utilisateur avec email ${email} non trouvé`);
+            process.exit(1);
+        }
+
+        console.log('\n📋 Informations actuelles:');
+        console.log(`   Email: ${utilisateur.email}`);
+        console.log(`   Nom: ${utilisateur.nom} ${utilisateur.prenom}`);
+        console.log(`   UID: ${utilisateur.uid}`);
+        console.log(`   Rôle actuel: ${utilisateur.role}`);
+
+        if (nouveauRole && (nouveauRole === 'ADMIN' || nouveauRole === 'USER')) {
+            if (utilisateur.role !== nouveauRole) {
+                utilisateur.role = nouveauRole;
+                await utilisateur.save();
+                console.log(`\n✅ Rôle mis à jour: ${utilisateur.role}`);
+            } else {
+                console.log(`\n✅ Rôle déjà correct: ${utilisateur.role}`);
+            }
+        } else {
+            console.log('\n💡 Pour changer le rôle, ajoutez ADMIN ou USER comme deuxième argument');
+        }
+
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Erreur:', error);
+        process.exit(1);
+    }
+};
+
+verifierRole();
