@@ -11,7 +11,7 @@ export const fetchRecettes = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             const response = await recetteAPI.getAll();
-            console.log('📊 fetchRecettes - Réponse API:', response.data?.length || 0, 'recette(s)');
+
             return response.data;
         } catch (error) {
             console.error('❌ Erreur fetchRecettes:', error);
@@ -64,10 +64,10 @@ export const updateRecette = createAsyncThunk(
     'recettes/updateRecette',
     async ({ id, data }, { rejectWithValue }) => {
         try {
-            console.log('🔍 updateRecette appelé avec ID:', id);
-            console.log('🔍 updateRecette données:', data);
+
+
             const response = await recetteAPI.updateRecette(id, data);
-            console.log('✅ updateRecette réponse:', response.data);
+
             return response.data;
         } catch (error) {
             console.error('❌ Erreur updateRecette:', error);

@@ -107,10 +107,10 @@ const DetailRecette = ({ route, navigation }) => {
     };
 
     const handleAddComment = async () => {
-        console.log('🔍 handleAddComment appelé');
-        console.log('🔍 isAuthenticated:', isAuthenticated);
-        console.log('🔍 user:', user);
-        console.log('🔍 commentText:', commentText);
+
+
+
+
 
         if (!isAuthenticated) {
             Alert.alert('Info', 'Connectez-vous pour laisser un avis');
@@ -130,13 +130,13 @@ const DetailRecette = ({ route, navigation }) => {
                 parentCommentaire: replyTo ? replyTo._id : undefined
             };
 
-            console.log('📤 Envoi du commentaire:', commentData);
+
 
             if (editingComment) {
                 await commentaireAPI.updateCommentaire(editingComment._id, commentData);
                 Alert.alert('Succès', 'Commentaire modifié');
             } else {
-                console.log('📤 Appel API addCommentaire...');
+
                 await commentaireAPI.addCommentaire(commentData);
                 Alert.alert('Succès', 'Votre avis a été publié');
             }
@@ -166,7 +166,7 @@ const DetailRecette = ({ route, navigation }) => {
 
     const handleDeleteComment = async (commentId) => {
         try {
-            console.log('🗑️ Tentative de suppression du commentaire:', commentId);
+
 
             // Mise à jour optimiste pour l'instantanéité
             setCommentaires(prev => prev.filter(c => c._id !== commentId));
@@ -318,14 +318,13 @@ const DetailRecette = ({ route, navigation }) => {
     };
 
     const executeDelete = async () => {
-        console.log('🔍 Début suppression recette ID:', recetteId);
+
 
         if (isAdmin) {
             // Admin delete directly
             try {
-                console.log('📤 Tentative suppression admin de:', recetteId);
+
                 const response = await recetteAPI.deleteRecette(recetteId);
-                console.log('✅ Réponse suppression:', response); // Log valid or undefined
 
                 // Show success message compatible with platform
                 if (Platform.OS === 'web') {

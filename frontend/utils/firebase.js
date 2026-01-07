@@ -56,7 +56,7 @@ try {
 
 const subscribeToAuthChanges = (callback) => {
   if (isMock || !auth) {
-    console.log("⚠️ Mode Mock actif : Auth désactivée temporairement.");
+
     callback(null);
     return () => { };
   }

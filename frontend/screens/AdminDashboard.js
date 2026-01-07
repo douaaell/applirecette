@@ -158,7 +158,7 @@ const AdminDashboard = ({ navigation, route }) => {
     };
 
     const handleRefuserRecette = async (recetteId) => {
-        console.log('🔍 handleRefuserRecette appelé avec ID:', recetteId);
+
         setRefusRecetteId(recetteId);
         setRefusRaison('');
         setRefusModalVisible(true);
@@ -166,9 +166,9 @@ const AdminDashboard = ({ navigation, route }) => {
 
     const confirmRefus = async () => {
         try {
-            console.log('📤 Refus de la recette:', refusRecetteId, 'raison:', refusRaison);
+
             await recetteAPI.refuserRecette(refusRecetteId, refusRaison || 'Non conforme');
-            console.log('✅ Recette refusée avec succès');
+
             Alert.alert('Succès', 'Recette refusée');
             setRefusModalVisible(false);
             loadRecettes();
@@ -180,19 +180,24 @@ const AdminDashboard = ({ navigation, route }) => {
         }
     };
 
-    const handleSupprimerRecette = async (recetteId) => {
-        console.log('🔴 BOUTON SUPPRIMER CLIQUÉ - ID:', recetteId);
+    const handleSupprimerRecette = async (recetteId, signalementId = null) => {
+
 
         const executeDelete = async () => {
             try {
-                console.log('🗑️ Tentative de suppression de la recette:', recetteId);
+
 
                 const res = await recetteAPI.deleteRecette(recetteId);
-                console.log('✅ Résultat suppression:', res.status, res.data);
+
 
                 // Mettre à jour l'état local immédiatement
                 setRecettesApprouvees(prev => prev.filter(r => r._id !== recetteId));
                 setRecettesEnAttente(prev => prev.filter(r => r._id !== recetteId));
+
+                // Si on vient d'un signalement, on le supprime aussi
+                if (signalementId) {
+                    await handleSupprimerSignalement(signalementId);
+                }
 
                 // Recharger les données
                 await loadRecettes();
@@ -287,12 +292,18 @@ const AdminDashboard = ({ navigation, route }) => {
         }
     };
 
-    const handleSupprimerCommentaire = async (commentId) => {
+    const handleSupprimerCommentaire = async (commentId, signalementId = null) => {
         const executeDelete = async () => {
             try {
                 await commentaireAPI.deleteCommentaire(commentId);
                 await loadCommentaires();
                 await loadStats();
+
+                // Si on vient d'un signalement, on le supprime aussi
+                if (signalementId) {
+                    await handleSupprimerSignalement(signalementId);
+                }
+
                 if (Platform.OS === 'web') {
                     // Feedback visuel optionnel sur web, le re-render suffit souvent
                 } else {
@@ -323,6 +334,17 @@ const AdminDashboard = ({ navigation, route }) => {
                     },
                 ]
             );
+        }
+    };
+
+    const handleSupprimerSignalement = async (signalementId) => {
+        try {
+            await signalementAPI.supprimer(signalementId);
+            setSignalements(prev => prev.filter(s => s._id !== signalementId));
+            loadStats();
+        } catch (error) {
+            console.error('Erreur suppression signalement:', error);
+            Alert.alert('Erreur', 'Impossible de supprimer le signalement');
         }
     };
 
@@ -477,7 +499,7 @@ const AdminDashboard = ({ navigation, route }) => {
     };
 
     const handleRejeterDemande = async (demandeId) => {
-        console.log('🔍 handleRejeterDemande appelé avec ID:', demandeId);
+
 
         // Logique cross-platform
         let raison = '';
@@ -489,13 +511,13 @@ const AdminDashboard = ({ navigation, route }) => {
             // Sur Android/iOS, on utilise une approche plus simple ou Alert.prompt (iOS only)
             // Pour simplifier ici, on n'utilise pas prompt natif Android pour l'instant
             // Idéalement il faudrait une Modale custom comme fait ailleurs
-            console.log('Note: Sur mobile hors iOS, la raison sera vide par défaut pour l\'instant');
+
         }
 
         try {
-            console.log('📤 Rejet de la demande:', demandeId, 'raison:', raison);
+
             await demandeModificationAPI.rejeter(demandeId, raison);
-            console.log('✅ Demande rejetée avec succès');
+
 
             if (Platform.OS === 'web') alert('Succès: Demande rejetée');
             else Alert.alert('Succès', 'Demande rejetée');
@@ -547,7 +569,7 @@ const AdminDashboard = ({ navigation, route }) => {
                                             style={{ color: COLORS.secondary, textDecorationLine: 'underline' }}
                                             onPress={() => {
                                                 const targetId = item.recette?._id || (typeof item.recette === 'string' ? item.recette : null);
-                                                console.log('🔗 Navigation vers recette:', targetId, 'depuis item:', item.recette);
+
                                                 if (targetId) navigation.navigate('DetailRecette', { recetteId: targetId });
                                                 else alert('Erreur: ID recette introuvable');
                                             }}
@@ -841,9 +863,12 @@ const AdminDashboard = ({ navigation, route }) => {
                                     Par : {item.auteur?.prenom} {item.auteur?.nom} • {new Date(item.date).toLocaleDateString()}
                                 </Text>
                             </View>
-                            <View style={[styles.modBadge, styles.badgeError]}>
-                                <Text style={styles.textError}>A vérifier</Text>
-                            </View>
+                            <TouchableOpacity
+                                onPress={() => handleSupprimerSignalement(item._id)}
+                                style={{ padding: 5 }}
+                            >
+                                <Ionicons name="close-circle" size={24} color={COLORS.textMuted} />
+                            </TouchableOpacity>
                         </View>
 
                         <View style={styles.modActions}>
@@ -863,12 +888,15 @@ const AdminDashboard = ({ navigation, route }) => {
                             <TouchableOpacity
                                 style={[styles.actionBtn, styles.btnError]}
                                 onPress={() => {
-                                    if (item.type === 'RECETTE') handleSupprimerRecette(item.cibleId);
-                                    else handleSupprimerCommentaire(item.cibleId);
+                                    if (item.type === 'RECETTE') {
+                                        handleSupprimerRecette(item.cibleId, item._id);
+                                    } else {
+                                        handleSupprimerCommentaire(item.cibleId, item._id);
+                                    }
                                 }}
                             >
                                 <Ionicons name="trash" size={16} color="white" />
-                                <Text style={styles.actionBtnText}>Supprimer</Text>
+                                <Text style={styles.actionBtnText}>Supprimer contenu</Text>
                             </TouchableOpacity>
                         </View>
                     </View>

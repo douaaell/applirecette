@@ -39,8 +39,6 @@ const Accueil = ({ navigation }) => {
 
     // Debug: Afficher les recettes dans la console
     /* React.useEffect(() => {
-        // console.log('📊 Accueil - Recettes dans Redux:', recettes?.length || 0);
-        // console.log('📊 Accueil - Loading:', loading);
     }, [recettes, loading]); */
 
     const [refreshing, setRefreshing] = useState(false);

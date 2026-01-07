@@ -153,7 +153,7 @@ const AjouterRecette = ({ navigation, route }) => {
 
         try {
             setLoading(true);
-            console.log('📤 Début soumission recette...');
+
 
             // Préparation des données
             let finalData;
@@ -200,7 +200,7 @@ const AjouterRecette = ({ navigation, route }) => {
 
             if (isEditMode) {
                 // TOUT LE MONDE crée une demande de modification
-                console.log('📤 Création demande de modification...');
+
 
                 // Préparer les modifications dans le bon format (toujours en JSON)
                 const modificationsData = {
@@ -218,7 +218,7 @@ const AjouterRecette = ({ navigation, route }) => {
                     image: imageUrl || imageUri || null,
                 };
 
-                console.log('📋 Données de modification:', modificationsData);
+
 
                 const response = await demandeModificationAPI.create({
                     type: 'modification',
@@ -226,9 +226,9 @@ const AjouterRecette = ({ navigation, route }) => {
                     modifications: modificationsData,
                 });
 
-                console.log('✅ Demande créée:', response.data);
 
-                console.log('✅ Demande créée:', response.data);
+
+
 
                 // Naviguer vers l'Accueil
                 navigation.navigate('Accueil');
@@ -242,13 +242,13 @@ const AjouterRecette = ({ navigation, route }) => {
                 }, 500);
 
             } else {
-                console.log('📤 Création nouvelle recette...');
+
                 await dispatch(addRecette(finalData)).unwrap();
-                console.log('✅ Recette créée avec succès');
+
                 Alert.alert('Succès', MESSAGES.RECETTE_AJOUTEE, [
                     {
                         text: 'OK', onPress: () => {
-                            console.log('📤 Navigation vers Accueil...');
+
                             navigation.navigate('Accueil');
                         }
                     }

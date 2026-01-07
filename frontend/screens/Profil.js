@@ -27,9 +27,9 @@ const Profil = ({ navigation }) => {
 
     // Debug: Afficher le rôle dans la console
     React.useEffect(() => {
-        console.log('🔍 Profil - Rôle depuis Redux:', role);
-        console.log('🔍 Profil - Rôle depuis user:', user?.role);
-        console.log('🔍 Profil - User complet:', user);
+
+
+
     }, [role, user]);
 
     const [mesCommentaires, setMesCommentaires] = useState([]);

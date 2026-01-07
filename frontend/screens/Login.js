@@ -23,7 +23,7 @@ const Login = ({ navigation }) => {
     const [loading, setLoading] = useState(false);
 
     const handleLogin = async () => {
-        console.log('🚀 BOUTON CONNEXION CLIQUÉ!', email, password);
+
 
         if (!email.trim() || !password.trim()) {
             Alert.alert('Erreur', 'Veuillez remplir tous les champs');

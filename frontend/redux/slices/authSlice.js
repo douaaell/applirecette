@@ -85,25 +85,25 @@ export const login = createAsyncThunk(
     'auth/login',
     async ({ email, password }, { rejectWithValue }) => {
         try {
-            console.log('🔐 Tentative de connexion avec:', email);
+
 
             // Connexion Firebase
             const userCredential = await signInWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            console.log('✅ Firebase OK, UID:', user.uid);
+
 
             // Récupérer le token et le configurer pour l'API
             const token = await user.getIdToken();
-            console.log('✅ Token obtenu');
+
             setAuthToken(token);
 
             // Récupération du profil depuis le backend
-            console.log('📡 Appel API getProfil...');
+
             try {
                 const response = await utilisateurAPI.getProfil();
-                console.log('✅ Profil reçu:', response.data);
-                console.log('🔍 Rôle dans response.data:', response.data?.role);
-                console.log('🔍 Type du rôle:', typeof response.data?.role);
+
+
+
 
                 const userData = {
                     uid: user.uid,
@@ -116,7 +116,7 @@ export const login = createAsyncThunk(
                     userData.role = userData.role.toUpperCase();
                 }
 
-                console.log('🔍 UserData final avec rôle:', userData.role);
+
                 return userData;
             } catch (apiError) {
                 console.error('❌ Erreur API getProfil:', apiError);
@@ -171,26 +171,26 @@ export const register = createAsyncThunk(
     'auth/register',
     async ({ email, password, nom, prenom }, { rejectWithValue }) => {
         try {
-            console.log('📝 Inscription Firebase:', email);
+
 
             // Inscription Firebase
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
             const user = userCredential.user;
-            console.log('✅ Firebase: Utilisateur créé, UID:', user.uid);
+
 
             // Récupérer le token et le configurer pour l'API
             const token = await user.getIdToken();
             setAuthToken(token);
 
             // Synchronisation avec le backend
-            console.log('📡 Synchronisation MongoDB...');
+
             const response = await utilisateurAPI.syncUtilisateur({
                 firebaseUid: user.uid,
                 email: user.email,
                 nom,
                 prenom,
             });
-            console.log('✅ MongoDB: Utilisateur synchronisé', response.data);
+
 
             // Déconnexion immédiate pour forcer la connexion manuelle
             await signOut(auth);
