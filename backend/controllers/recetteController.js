@@ -1,4 +1,7 @@
 const Recette = require('../models/Recette');
+const Utilisateur = require('../models/Utilisateur');
+const notificationController = require('./notificationController');
+const Commentaire = require('../models/Commentaire'); // if needed
 
 // @desc    Récupérer toutes les recettes (filtres possibles)
 // @route   GET /api/recettes
@@ -75,6 +78,24 @@ const addRecette = async (req, res) => {
 
         const recette = new Recette(recetteData);
         const createdRecette = await recette.save();
+
+        // Envoyer une notification à tous les administrateurs
+        try {
+            const admins = await Utilisateur.find({ role: 'ADMIN' });
+            for (const admin of admins) {
+                await notificationController.creerNotification(
+                    admin._id,
+                    req.user._id,
+                    'SYSTEME',
+                    'Nouvelle recette à valider',
+                    `Une nouvelle recette "${createdRecette.titre}" a été ajoutée par ${req.user.prenom} ${req.user.nom}. Veuillez la valider ou la refuser.`,
+                    createdRecette._id
+                );
+            }
+        } catch (notifyError) {
+            console.error('Erreur lors de la notification des admins:', notifyError);
+        }
+
         // console.log('✅ Recette sauvegardée dans MongoDB ! ID:', createdRecette._id);
         res.status(201).json(createdRecette);
     } catch (error) {
@@ -90,7 +111,22 @@ const getRecetteById = async (req, res) => {
     try {
         const recette = await Recette.findById(req.params.id).populate('auteur', 'nom prenom');
         if (recette) {
-            // Incrémenter vues si besoin
+            // Incrémenter vues
+            recette.vues = (recette.vues || 0) + 1;
+            await recette.save();
+
+            // Notification de popularité
+            if (recette.vues === 100) {
+                await notificationController.creerNotification(
+                    recette.auteur._id,
+                    null,
+                    'SYSTEME',
+                    'Recette populaire !',
+                    `Félicitations ! Votre recette "${recette.titre}" a été vue plus de 100 fois !`,
+                    recette._id
+                );
+            }
+
             res.json(recette);
         } else {
             res.status(404).json({ message: 'Recette non trouvée' });
@@ -141,6 +177,51 @@ const validerRecette = async (req, res) => {
             }
 
             const updatedRecette = await recette.save();
+
+            // Envoyer une notification à l'auteur
+            const type = updatedRecette.statut === 'APPROUVEE' ? 'RECETTE_APPROUVEE' : 'RECETTE_REFUSEE';
+            const titre = updatedRecette.statut === 'APPROUVEE' ? 'Recette approuvée' : 'Recette refusée';
+            let message = updatedRecette.statut === 'APPROUVEE'
+                ? `Votre recette "${updatedRecette.titre}" a été approuvée !`
+                : `Votre recette "${updatedRecette.titre}" a été refusée.`;
+
+            if (updatedRecette.statut === 'REFUSEE' && updatedRecette.raisonRefus) {
+                message += ` Raison : ${updatedRecette.raisonRefus}`;
+            }
+
+            await notificationController.creerNotification(
+                updatedRecette.auteur,
+                req.user._id,
+                type,
+                titre,
+                message,
+                updatedRecette._id
+            );
+
+            // Gamification : Niveau de contribution (Ex: 5ème recette approuvée)
+            if (updatedRecette.statut === 'APPROUVEE') {
+                const count = await Recette.countDocuments({ auteur: updatedRecette.auteur, statut: 'APPROUVEE' });
+                if (count === 1) {
+                    await notificationController.creerNotification(
+                        updatedRecette.auteur,
+                        null,
+                        'SYSTEME',
+                        'Première recette !',
+                        'Félicitations pour votre première recette approuvée ! Bienvenue dans la communauté des cuisiniers.',
+                        null
+                    );
+                } else if (count === 5) {
+                    await notificationController.creerNotification(
+                        updatedRecette.auteur,
+                        null,
+                        'SYSTEME',
+                        'Cuisinier Confirmé !',
+                        'Bravo ! Vous avez publié votre 5ème recette. Vous êtes maintenant un Cuisinier Confirmé !',
+                        null
+                    );
+                }
+            }
+
             // console.log('✅ Recette validée/mise à jour:', updatedRecette?.statut);
             res.json(updatedRecette);
         } else {
@@ -278,6 +359,18 @@ const deleteRecette = async (req, res) => {
         // Vérifier si l'utilisateur est admin ou l'auteur
         if (req.user.role !== 'ADMIN' && recette.auteur.toString() !== req.user._id.toString()) {
             return res.status(403).json({ message: 'Non autorisé à supprimer cette recette' });
+        }
+
+        // Notification de suppression forcée par un admin
+        if (req.user.role === 'ADMIN' && recette.auteur.toString() !== req.user._id.toString()) {
+            await notificationController.creerNotification(
+                recette.auteur,
+                req.user._id,
+                'SYSTEME',
+                'Recette supprimée',
+                `Votre recette "${recette.titre}" a été supprimée par un administrateur pour non-respect des règles de la plateforme.`,
+                null
+            );
         }
 
         await Recette.findByIdAndDelete(req.params.id);

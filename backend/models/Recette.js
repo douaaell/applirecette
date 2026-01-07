@@ -63,6 +63,10 @@ const recetteSchema = new mongoose.Schema({
         type: Number,
         default: 0,
     },
+    vues: {
+        type: Number,
+        default: 0,
+    },
     dateCreation: {
         type: Date,
         default: Date.now,

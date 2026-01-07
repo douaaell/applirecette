@@ -13,9 +13,11 @@ app.use(express.json());
 
 // Import routes
 const utilisateurRoutes = require('./routes/utilisateurRoutes');
+const signalementRoutes = require('./routes/signalementRoutes');
 const recetteRoutes = require('./routes/recetteRoutes');
 const commentaireRoutes = require('./routes/commentaireRoutes');
 const demandeModificationRoutes = require('./routes/demandeModificationRoutes');
+const notificationRoutes = require('./routes/notificationRoutes');
 
 // Routes
 app.get('/', (req, res) => {
@@ -24,9 +26,11 @@ app.get('/', (req, res) => {
 
 // API routes
 app.use('/api/utilisateurs', utilisateurRoutes);
+app.use('/api/signalements', signalementRoutes);
 app.use('/api/recettes', recetteRoutes);
 app.use('/api/commentaires', commentaireRoutes);
 app.use('/api/demandes-modification', demandeModificationRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Connexion à la base de données et démarrage du serveur
 connectDB()

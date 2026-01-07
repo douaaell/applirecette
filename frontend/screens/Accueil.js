@@ -16,7 +16,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchRecettes, fetchMesRecettes } from '../redux/slices/recetteSlice';
 import { logout, toggleFavori, fetchFavoris } from '../redux/slices/authSlice';
-import { utilisateurAPI, recetteAPI, demandeModificationAPI } from '../utils/api';
+import { utilisateurAPI, recetteAPI, demandeModificationAPI, notificationAPI } from '../utils/api';
 import RecetteCard from '../components/RecetteCard';
 import SideMenu from '../components/SideMenu';
 
@@ -98,27 +98,9 @@ const Accueil = ({ navigation }) => {
         }
 
         try {
-            let count = 0;
-
-            if (role === 'ADMIN') {
-                // Pour les admins : recettes en attente + demandes de modification en attente
-                const [recettesResponse, demandesResponse] = await Promise.all([
-                    recetteAPI.getAllRecettesAdmin().catch(() => ({ data: [] })),
-                    demandeModificationAPI.getAll().catch(() => ({ data: [] }))
-                ]);
-
-                const recettesEnAttente = recettesResponse.data?.filter(r => r.statut === 'EN_ATTENTE') || [];
-                const demandesEnAttente = demandesResponse.data?.filter(d => d.statut === 'EN_ATTENTE') || [];
-
-                count = recettesEnAttente.length + demandesEnAttente.length;
-            } else {
-                // Pour les utilisateurs : leurs recettes en attente
-                const mesRecettesResponse = await recetteAPI.getMesRecettes().catch(() => ({ data: [] }));
-                const recettesEnAttente = mesRecettesResponse.data?.filter(r => r.statut === 'EN_ATTENTE') || [];
-                count = recettesEnAttente.length;
-            }
-
-            setNotificationCount(count);
+            const response = await notificationAPI.getMesNotifications();
+            const unreadCount = response.data.filter(n => !n.lu).length;
+            setNotificationCount(unreadCount);
         } catch (error) {
             console.error('Erreur calcul notifications:', error);
             setNotificationCount(0);
@@ -193,11 +175,6 @@ const Accueil = ({ navigation }) => {
         setSelectedTri('recent');
     };
 
-    const handleLogout = () => {
-        dispatch(logout());
-        setShowMenu(false);
-    };
-
     const handleNavigation = (screen) => {
         setShowMenu(false);
         navigation.navigate(screen);
@@ -259,13 +236,7 @@ const Accueil = ({ navigation }) => {
                         <View style={styles.userHeaderRight}>
                             <TouchableOpacity
                                 style={styles.notificationButton}
-                                onPress={() => {
-                                    if (role === 'ADMIN') {
-                                        navigation.navigate('AdminDashboard', { initialTab: 'recettes' });
-                                    } else {
-                                        navigation.navigate('Profil');
-                                    }
-                                }}
+                                onPress={() => navigation.navigate('Notifications')}
                             >
                                 <View style={{ backgroundColor: '#F5F5F5', padding: 8, borderRadius: 20 }}>
                                     <Ionicons name="notifications-outline" size={24} color={COLORS.text} />

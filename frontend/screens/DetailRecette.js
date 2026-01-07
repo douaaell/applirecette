@@ -15,9 +15,9 @@ import {
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
-import { recetteAPI, commentaireAPI, utilisateurAPI, demandeModificationAPI } from '../utils/api';
+import { recetteAPI, commentaireAPI, utilisateurAPI, demandeModificationAPI, signalementAPI } from '../utils/api';
 import { fetchRecettes } from '../redux/slices/recetteSlice';
-import { toggleFavori } from '../redux/slices/authSlice';
+import { toggleFavori, refreshProfile } from '../redux/slices/authSlice';
 
 import Commentaire from '../components/Commentaire';
 import Rating from '../components/Rating';
@@ -48,12 +48,14 @@ const DetailRecette = ({ route, navigation }) => {
     const [commentText, setCommentText] = useState('');
     const [commentRating, setCommentRating] = useState(5);
     const [editingComment, setEditingComment] = useState(null);
+    const [replyTo, setReplyTo] = useState(null);
 
     // Portions ajustables
     const [portions, setPortions] = useState(1);
 
     // Onglets (Ingrédients / Préparation)
     const [activeTab, setActiveTab] = useState('ingredients');
+
 
     const isAdmin = role === 'ADMIN';
     const isOwner = isAuthenticated && recette?.auteur?._id === user?._id;
@@ -123,7 +125,8 @@ const DetailRecette = ({ route, navigation }) => {
             const commentData = {
                 recette: recetteId,
                 contenu: commentText,
-                note: 5 // Default rating since UI removed, or could be 0 if hidden
+                note: 5,
+                parentCommentaire: replyTo ? replyTo._id : undefined
             };
 
             console.log('📤 Envoi du commentaire:', commentData);
@@ -133,19 +136,17 @@ const DetailRecette = ({ route, navigation }) => {
                 Alert.alert('Succès', 'Commentaire modifié');
             } else {
                 console.log('📤 Appel API addCommentaire...');
-                const response = await commentaireAPI.addCommentaire(commentData);
-                console.log('✅ Réponse API:', response);
+                await commentaireAPI.addCommentaire(commentData);
                 Alert.alert('Succès', 'Votre avis a été publié');
             }
 
             setCommentText('');
             setEditingComment(null);
-            // setShowCommentModal(false); // Removed
+            setReplyTo(null);
             loadCommentaires();
-            loadRecette(); // Update global rating
+            loadRecette();
         } catch (error) {
             console.error('❌ Erreur ajout commentaire:', error);
-            console.error('❌ Détails erreur:', error.response?.data);
             Alert.alert('Erreur', error.response?.data?.message || MESSAGES.ERREUR_GENERALE);
         }
     };
@@ -191,6 +192,91 @@ const DetailRecette = ({ route, navigation }) => {
                 [
                     { text: 'Annuler', style: 'cancel' },
                     { text: 'Supprimer', style: 'destructive', onPress: executeDelete }
+                ]
+            );
+        }
+    };
+
+
+    const handleReportRecipe = () => {
+        if (!isAuthenticated) {
+            Alert.alert('Info', 'Connectez-vous pour signaler du contenu');
+            return;
+        }
+
+        const sendReport = async (motif) => {
+            try {
+                await signalementAPI.creer({
+                    type: 'RECETTE',
+                    cibleId: recetteId,
+                    motif
+                });
+                Alert.alert('Merci', 'Votre signalement a été envoyé aux administrateurs.');
+            } catch (error) {
+                Alert.alert('Erreur', 'Impossible d\'envoyer le signalement');
+            }
+        };
+
+        if (Platform.OS === 'ios') {
+            Alert.prompt(
+                'Signaler la recette',
+                'Pourquoi souhaitez-vous signaler cette recette ?',
+                [{ text: 'Annuler', style: 'cancel' }, { text: 'Signaler', onPress: (m) => sendReport(m || 'Autre') }]
+            );
+        } else if (Platform.OS === 'web') {
+            const motif = window.prompt('Pourquoi souhaitez-vous signaler cette recette ?');
+            if (motif) sendReport(motif);
+        } else {
+            // Android fallback
+            Alert.alert(
+                'Signaler la recette',
+                'Motif du signalement',
+                [
+                    { text: 'Spam', onPress: () => sendReport('Spam') },
+                    { text: 'Inapproprié', onPress: () => sendReport('Inapproprié') },
+                    { text: 'Autre', onPress: () => sendReport('Autre') },
+                    { text: 'Annuler', style: 'cancel' }
+                ]
+            );
+        }
+    };
+
+    const handleReportComment = async (commentId) => {
+        if (!isAuthenticated) {
+            Alert.alert('Info', 'Connectez-vous pour signaler du contenu');
+            return;
+        }
+
+        const sendReport = async (motif) => {
+            try {
+                await signalementAPI.creer({
+                    type: 'COMMENTAIRE',
+                    cibleId: commentId,
+                    motif
+                });
+                Alert.alert('Merci', 'Votre signalement a été envoyé.');
+            } catch (error) {
+                Alert.alert('Erreur', 'Echec de l\'envoi');
+            }
+        };
+
+        if (Platform.OS === 'ios') {
+            Alert.prompt(
+                'Signaler le commentaire',
+                'Motif du signalement :',
+                [{ text: 'Annuler', style: 'cancel' }, { text: 'Signaler', onPress: (m) => sendReport(m || 'Inapproprié') }]
+            );
+        } else if (Platform.OS === 'web') {
+            const motif = window.prompt('Motif du signalement :');
+            if (motif) sendReport(motif);
+        } else {
+            Alert.alert(
+                'Signaler',
+                'Motif du signalement',
+                [
+                    { text: 'Spam', onPress: () => sendReport('Spam') },
+                    { text: 'Harcèlement', onPress: () => sendReport('Harcèlement') },
+                    { text: 'Annuler', style: 'cancel' }
                 ]
             );
         }
@@ -400,7 +486,9 @@ const DetailRecette = ({ route, navigation }) => {
                         </View>
 
                         {/* Author */}
-                        <Text style={styles.authorText}>Par {recette.auteur ? `${recette.auteur.prenom || ''} ${recette.auteur.nom || ''}`.trim() : 'Chef Inconnu'}</Text>
+                        <View style={styles.authorRowNew}>
+                            <Text style={styles.authorText}>Par {recette.auteur ? `${recette.auteur.prenom || ''} ${recette.auteur.nom || ''}`.trim() : 'Chef Inconnu'}</Text>
+                        </View>
 
                         {/* Meta Data Row: Time, People, Rating, Badges */}
                         <View style={styles.metaRowNew}>
@@ -431,6 +519,13 @@ const DetailRecette = ({ route, navigation }) => {
                             <View style={[styles.badgeNew, { backgroundColor: '#FFF3E0', marginLeft: 8 }]}>
                                 <Text style={[styles.badgeTextNew, { color: '#EF6C00' }]}>{recette.categorie || 'Plat'}</Text>
                             </View>
+                            <View style={[styles.metaItemNew, { marginLeft: 12 }]}>
+                                <Ionicons name="eye-outline" size={16} color={COLORS.textLight} />
+                                <Text style={styles.metaTextNew}>{recette.vues || 0} vues</Text>
+                            </View>
+                            <TouchableOpacity style={{ marginLeft: 'auto' }} onPress={handleReportRecipe}>
+                                <Ionicons name="flag-outline" size={20} color={COLORS.textLight} />
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -512,18 +607,44 @@ const DetailRecette = ({ route, navigation }) => {
                         {/* Zone de saisie inline */}
                         {isAuthenticated ? (
                             <View style={{ marginBottom: 20 }}>
+                                {replyTo && (
+                                    <View style={styles.replyIndicatorHeader}>
+                                        <Text style={styles.replyIndicatorText}>
+                                            Réponse à {replyTo.utilisateur.prenom}
+                                        </Text>
+                                        <TouchableOpacity onPress={() => { setReplyTo(null); setCommentText(''); }}>
+                                            <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                                 <TextInput
                                     style={styles.inlineInput}
-                                    placeholder="Partagez votre avis sur cette recette..."
+                                    placeholder={replyTo ? "Écrivez votre réponse..." : "Partagez votre avis sur cette recette..."}
                                     placeholderTextColor="#999"
                                     value={commentText}
                                     onChangeText={setCommentText}
                                     multiline
                                 />
-                                <TouchableOpacity style={styles.inlineSubmitBtn} onPress={handleAddComment}>
-                                    <Ionicons name="send" size={16} color="white" style={{ marginRight: 6 }} />
-                                    <Text style={styles.inlineSubmitBtnText}>Publier</Text>
-                                </TouchableOpacity>
+                                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                                    {(replyTo || editingComment) && (
+                                        <TouchableOpacity
+                                            style={[styles.inlineSubmitBtn, { backgroundColor: '#f0f0f0' }]}
+                                            onPress={() => {
+                                                setReplyTo(null);
+                                                setEditingComment(null);
+                                                setCommentText('');
+                                            }}
+                                        >
+                                            <Text style={[styles.inlineSubmitBtnText, { color: COLORS.text }]}>Annuler</Text>
+                                        </TouchableOpacity>
+                                    )}
+                                    <TouchableOpacity style={styles.inlineSubmitBtn} onPress={handleAddComment}>
+                                        <Ionicons name="send" size={16} color="white" style={{ marginRight: 6 }} />
+                                        <Text style={styles.inlineSubmitBtnText}>
+                                            {editingComment ? 'Modifier' : replyTo ? 'Répondre' : 'Publier'}
+                                        </Text>
+                                    </TouchableOpacity>
+                                </View>
                             </View>
                         ) : (
                             <TouchableOpacity
@@ -547,6 +668,12 @@ const DetailRecette = ({ route, navigation }) => {
                                         isAdmin={isAdmin}
                                         onEdit={handleEditComment}
                                         onDelete={handleDeleteComment}
+                                        onReport={handleReportComment}
+                                        onReply={(comment) => {
+                                            setReplyTo(comment);
+                                            const name = comment.utilisateur?.prenom || 'Utilisateur';
+                                            setCommentText(`@${name} `);
+                                        }}
                                     />
                                 </View>
                             ))
@@ -719,6 +846,11 @@ const styles = StyleSheet.create({
     authorText: {
         fontSize: 14,
         color: COLORS.textMuted,
+    },
+    authorRowNew: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         marginBottom: 12,
     },
     metaRowNew: {
@@ -1006,6 +1138,21 @@ const styles = StyleSheet.create({
     loginPromptText: {
         color: COLORS.textMuted,
         fontSize: 14,
+    },
+    replyIndicatorHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        backgroundColor: '#f0f0f0',
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 8,
+        marginBottom: 8,
+    },
+    replyIndicatorText: {
+        fontSize: 12,
+        color: COLORS.text,
+        fontWeight: 'bold',
     },
 });
 

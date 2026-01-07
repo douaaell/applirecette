@@ -1,5 +1,7 @@
 const DemandeModification = require('../models/DemandeModification');
 const Recette = require('../models/Recette');
+const Utilisateur = require('../models/Utilisateur');
+const notificationController = require('./notificationController');
 
 // @desc    Créer une demande de modification ou suppression
 // @route   POST /api/demandes-modification
@@ -56,6 +58,23 @@ const createDemande = async (req, res) => {
         await demande.save();
         await demande.populate('recette', 'titre image');
         await demande.populate('auteur', 'nom prenom email');
+
+        // Notification aux admins
+        try {
+            const admins = await Utilisateur.find({ role: 'ADMIN' });
+            for (const admin of admins) {
+                await notificationController.creerNotification(
+                    admin._id,
+                    req.user._id,
+                    'SYSTEME',
+                    'Nouvelle demande de modification',
+                    `Une demande de ${type} pour la recette "${demande.recette.titre}" a été soumise par ${req.user.prenom} ${req.user.nom}.`,
+                    recetteId
+                );
+            }
+        } catch (err) {
+            console.error('Erreur notification admin (demande):', err);
+        }
 
         res.status(201).json(demande);
     } catch (error) {
@@ -120,6 +139,16 @@ const approuverDemande = async (req, res) => {
 
             res.json({ message: 'Suppression approuvée et appliquée', demande });
         }
+
+        // Envoyer une notification à l'auteur de la demande
+        await notificationController.creerNotification(
+            demande.auteur._id,
+            req.user._id,
+            'MODIFICATION_APPROUVEE',
+            'Demande approuvée',
+            `Votre demande de ${demande.type === 'modification' ? 'modification' : 'suppression'} pour la recette "${demande.recette.titre}" a été approuvée.`,
+            demande.recette._id
+        );
     } catch (error) {
         console.error('Erreur approbation demande:', error);
         res.status(500).json({ message: error.message });
@@ -149,6 +178,17 @@ const rejeterDemande = async (req, res) => {
         await demande.save();
 
         res.json({ message: 'Demande rejetée', demande });
+
+        // Envoyer une notification à l'auteur de la demande
+        const fullDemande = await DemandeModification.findById(demande._id).populate('recette');
+        await notificationController.creerNotification(
+            demande.auteur,
+            req.user._id,
+            'MODIFICATION_REFUSEE',
+            'Demande refusée',
+            `Votre demande de ${demande.type === 'modification' ? 'modification' : 'suppression'} pour la recette "${fullDemande.recette?.titre || ''}" a été refusée. Raison : ${demande.raisonRefus}`,
+            demande.recette
+        );
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

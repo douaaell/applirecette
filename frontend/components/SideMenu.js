@@ -7,7 +7,8 @@ import {
     TouchableOpacity,
     ScrollView,
     Image,
-    Alert
+    Alert,
+    Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSelector, useDispatch } from 'react-redux';
@@ -23,22 +24,28 @@ const SideMenu = ({ visible, onClose, navigation }) => {
         navigation.navigate(screen, params);
     };
 
-    const handleLogout = () => {
-        Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
-            { text: 'Annuler', style: 'cancel' },
-            {
-                text: 'Déconnexion',
-                style: 'destructive',
-                onPress: () => {
-                    dispatch(logout());
-                    onClose();
-                    navigation.reset({
-                        index: 0,
-                        routes: [{ name: 'Accueil' }],
-                    });
-                },
-            },
-        ]);
+    const handleLogout = async () => {
+        const confirmLogout = () => {
+            return new Promise((resolve) => {
+                if (Platform.OS === 'web') {
+                    resolve(window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?'));
+                } else {
+                    Alert.alert('Déconnexion', 'Êtes-vous sûr de vouloir vous déconnecter ?', [
+                        { text: 'Annuler', onPress: () => resolve(false), style: 'cancel' },
+                        { text: 'Déconnexion', onPress: () => resolve(true), style: 'destructive' },
+                    ]);
+                }
+            });
+        };
+
+        if (await confirmLogout()) {
+            await dispatch(logout());
+            onClose();
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Accueil' }],
+            });
+        }
     };
 
     return (
@@ -87,6 +94,15 @@ const SideMenu = ({ visible, onClose, navigation }) => {
                                         <Ionicons name="add-circle" size={24} color={COLORS.secondary} />
                                     </View>
                                     <Text style={styles.menuText}>Ajouter une Recette</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.menuItem}
+                                    onPress={() => handleNavigation('Notifications')}
+                                >
+                                    <View style={styles.iconContainer}>
+                                        <Ionicons name="notifications" size={24} color={COLORS.secondary} />
+                                    </View>
+                                    <Text style={styles.menuText}>Mes Notifications</Text>
                                 </TouchableOpacity>
                                 <View style={styles.separator} />
 

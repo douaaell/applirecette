@@ -25,6 +25,11 @@ const commentaireSchema = new mongoose.Schema({
         type: Date,
         default: Date.now,
     },
+    parentCommentaire: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Commentaire',
+        required: false,
+    },
 });
 
 module.exports = mongoose.model('Commentaire', commentaireSchema);

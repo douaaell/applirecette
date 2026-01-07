@@ -8,13 +8,15 @@ const Commentaire = ({
     currentUserId,
     isAdmin,
     onEdit,
-    onDelete
+    onDelete,
+    onReport,
+    onReply
 }) => {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
     const [editContent, setEditContent] = useState(commentaire.contenu);
 
-    const canEdit = currentUserId === commentaire.utilisateur?._id;
+    const canEdit = currentUserId && commentaire.utilisateur?._id && currentUserId === commentaire.utilisateur._id;
     const canDelete = canEdit || isAdmin;
 
     const handleDelete = () => {
@@ -103,6 +105,9 @@ const Commentaire = ({
                             <Ionicons name="trash-outline" size={20} color="#E53935" />
                         </TouchableOpacity>
                     )}
+                    <TouchableOpacity onPress={() => onReport(commentaire._id)} style={styles.actionIconButton}>
+                        <Ionicons name="flag-outline" size={20} color="#999" />
+                    </TouchableOpacity>
                 </View>
             </View>
 
@@ -154,7 +159,12 @@ const Commentaire = ({
                     </View>
                 </View>
             ) : (
-                <Text style={styles.commentContentText}>{commentaire.contenu}</Text>
+                <View style={{ marginLeft: 48 }}>
+                    <Text style={styles.commentContentTextNormal}>{commentaire.contenu}</Text>
+                    <TouchableOpacity onPress={() => onReply(commentaire)} style={styles.replyButton}>
+                        <Text style={styles.replyButtonText}>Répondre</Text>
+                    </TouchableOpacity>
+                </View>
             )}
         </View>
     );
@@ -208,11 +218,18 @@ const styles = StyleSheet.create({
         marginLeft: 48,
         marginBottom: 5,
     },
-    commentContentText: {
+    commentContentTextNormal: {
         fontSize: 14,
         color: '#444',
         lineHeight: 20,
-        marginLeft: 48,
+    },
+    replyButton: {
+        marginTop: 6,
+    },
+    replyButtonText: {
+        fontSize: 12,
+        color: COLORS.secondary,
+        fontWeight: 'bold',
     },
     editCard: {
         marginLeft: 48,

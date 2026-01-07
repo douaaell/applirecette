@@ -8,7 +8,8 @@ import {
     Alert,
     RefreshControl,
     Image,
-    ActivityIndicator
+    ActivityIndicator,
+    Platform
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,11 +70,27 @@ const Profil = ({ navigation }) => {
         setRefreshing(false);
     };
 
-    const handleLogout = () => {
-        Alert.alert('Déconnexion', 'Êtes-vous sûr ?', [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'Déconnexion', style: 'destructive', onPress: () => dispatch(logout()) },
-        ]);
+    const handleLogout = async () => {
+        const confirmLogout = () => {
+            return new Promise((resolve) => {
+                if (Platform.OS === 'web') {
+                    resolve(window.confirm('Êtes-vous sûr de vouloir vous déconnecter ?'));
+                } else {
+                    Alert.alert('Déconnexion', 'Êtes-vous sûr ?', [
+                        { text: 'Annuler', onPress: () => resolve(false), style: 'cancel' },
+                        { text: 'Déconnexion', onPress: () => resolve(true), style: 'destructive' },
+                    ]);
+                }
+            });
+        };
+
+        if (await confirmLogout()) {
+            await dispatch(logout());
+            navigation.reset({
+                index: 0,
+                routes: [{ name: 'Accueil' }],
+            });
+        }
     };
 
     const recettesEnAttente = mesRecettes?.filter(r => r.statut === 'EN_ATTENTE') || [];
@@ -176,7 +193,6 @@ const Profil = ({ navigation }) => {
                     <View style={styles.statsRow}>
                         <StatItem count={mesRecettes?.length || 0} label="Recettes" color="#FF8C42" />
                         <StatItem count={recettesApprouvees.length} label="Approuvées" color="#4CAF50" />
-                        <StatItem count={mesCommentaires.length} label="Commentaires" color="#2196F3" />
                     </View>
                 </View>
 

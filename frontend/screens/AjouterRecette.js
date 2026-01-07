@@ -248,8 +248,11 @@ const AjouterRecette = ({ navigation, route }) => {
                 Alert.alert('Succès', MESSAGES.RECETTE_AJOUTEE, [
                     {
                         text: 'OK', onPress: () => {
-                            console.log('📤 Navigation vers page précédente...');
-                            navigation.goBack();
+                            console.log('📤 Navigation vers Accueil...');
+                            navigation.reset({
+                                index: 0,
+                                routes: [{ name: 'Accueil' }],
+                            });
                         }
                     }
                 ]);

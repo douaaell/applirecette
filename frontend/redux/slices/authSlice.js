@@ -213,6 +213,7 @@ export const logout = createAsyncThunk(
     async (_, { rejectWithValue }) => {
         try {
             await signOut(auth);
+            setAuthToken(null); // S'assurer que le token axios est supprimé
             return null;
         } catch (error) {
             return rejectWithValue(error.message);
@@ -262,6 +263,19 @@ export const syncUser = createAsyncThunk(
 );
 
 // ════════════════════════════════════════
+// Rafraîchir le profil
+export const refreshProfile = createAsyncThunk(
+    'auth/refreshProfile',
+    async (_, { rejectWithValue }) => {
+        try {
+            const response = await utilisateurAPI.getProfil();
+            return response.data;
+        } catch (error) {
+            return rejectWithValue(error.response?.data?.message || error.message);
+        }
+    }
+);
+
 // 🗂️ SLICE
 // ════════════════════════════════════════
 
@@ -363,6 +377,13 @@ const authSlice = createSlice({
                 state.isAuthenticated = false;
                 state.role = null;
                 state.initialized = true;
+            });
+
+        // Refresh Profile
+        builder
+            .addCase(refreshProfile.fulfilled, (state, action) => {
+                state.user = { ...state.user, ...action.payload };
+                state.role = action.payload?.role || state.role;
             });
 
         // Favoris logic

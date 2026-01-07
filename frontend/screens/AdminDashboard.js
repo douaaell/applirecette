@@ -16,7 +16,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDispatch, useSelector } from 'react-redux';
-import { recetteAPI, utilisateurAPI, commentaireAPI, demandeModificationAPI } from '../utils/api';
+import { recetteAPI, utilisateurAPI, commentaireAPI, demandeModificationAPI, signalementAPI } from '../utils/api';
 import { fetchRecettes } from '../redux/slices/recetteSlice';
 import { logout } from '../redux/slices/authSlice';
 import { COLORS, SPACING, SIZES, FONTS } from '../utils/constants';
@@ -40,9 +40,10 @@ const AdminDashboard = ({ navigation, route }) => {
     const [utilisateurs, setUtilisateurs] = useState([]);
     const [commentaires, setCommentaires] = useState([]);
     const [demandesModification, setDemandesModification] = useState([]);
+    const [signalements, setSignalements] = useState([]);
 
     // UI States
-    const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, recettes, utilisateurs, commentaires
+    const [activeTab, setActiveTab] = useState('dashboard'); // dashboard, recettes, utilisateurs, commentaires, signalements
     const [refreshing, setRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -68,6 +69,7 @@ const AdminDashboard = ({ navigation, route }) => {
                 loadUtilisateurs(),
                 loadCommentaires(),
                 loadDemandesModification(),
+                loadSignalements(),
             ]);
         } catch (error) {
             console.error('Erreur chargement données admin:', error);
@@ -122,6 +124,15 @@ const AdminDashboard = ({ navigation, route }) => {
             setDemandesModification(response.data);
         } catch (error) {
             console.error('Erreur demandes modification:', error);
+        }
+    };
+
+    const loadSignalements = async () => {
+        try {
+            const response = await signalementAPI.getAll();
+            setSignalements(response.data);
+        } catch (error) {
+            console.error('Erreur signalements:', error);
         }
     };
 
@@ -368,8 +379,8 @@ const AdminDashboard = ({ navigation, route }) => {
         }
     };
 
-    const handleLogout = () => {
-        dispatch(logout());
+    const handleLogout = async () => {
+        await dispatch(logout());
         navigation.reset({
             index: 0,
             routes: [{ name: 'Login' }],
@@ -435,7 +446,17 @@ const AdminDashboard = ({ navigation, route }) => {
                         onPress={() => setActiveTab('modifications')}
                     >
                         <Ionicons name="document-text" size={18} color={activeTab === 'modifications' ? COLORS.primary : COLORS.text} />
-                        <Text style={[styles.tabText, activeTab === 'modifications' && styles.tabTextActive]}>Demandes de modification</Text>
+                        <Text style={[styles.tabText, activeTab === 'modifications' && styles.tabTextActive]}>Demandes</Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                        style={[styles.tabItem, activeTab === 'signalements' && styles.tabItemActive]}
+                        onPress={() => setActiveTab('signalements')}
+                    >
+                        <Ionicons name="flag" size={18} color={activeTab === 'signalements' ? COLORS.primary : COLORS.text} />
+                        <Text style={[styles.tabText, activeTab === 'signalements' && styles.tabTextActive]}>
+                            Signalements {signalements.length > 0 ? `(${signalements.length})` : ''}
+                        </Text>
                     </TouchableOpacity>
                 </ScrollView>
             </View>
@@ -794,6 +815,65 @@ const AdminDashboard = ({ navigation, route }) => {
         </View>
     );
 
+    const renderSignalementsTab = () => (
+        <View style={styles.contentSection}>
+            <Text style={styles.sectionTitle}>Contenus signalés ({signalements.length})</Text>
+
+            {signalements.length === 0 ? (
+                <View style={styles.emptyBox}>
+                    <Text style={styles.emptyText}>Aucun report en cours.</Text>
+                </View>
+            ) : (
+                signalements.map((item) => (
+                    <View key={item._id} style={styles.modCard}>
+                        <View style={styles.modHeader}>
+                            <View>
+                                <Text style={styles.modTitle}>
+                                    Type : {item.type}
+                                </Text>
+                                <Text style={styles.modSubtitle}>
+                                    Motif : <Text style={{ fontWeight: 'bold', color: COLORS.error }}>{item.motif}</Text>
+                                </Text>
+                                <Text style={styles.modSubtitle}>
+                                    Par : {item.auteur?.prenom} {item.auteur?.nom} • {new Date(item.date).toLocaleDateString()}
+                                </Text>
+                            </View>
+                            <View style={[styles.modBadge, styles.badgeError]}>
+                                <Text style={styles.textError}>A vériier</Text>
+                            </View>
+                        </View>
+
+                        <View style={styles.modActions}>
+                            <TouchableOpacity
+                                style={[styles.actionBtn, styles.btnInfo]}
+                                onPress={() => {
+                                    if (item.type === 'RECETTE') {
+                                        navigation.navigate('DetailRecette', { recetteId: item.cibleId });
+                                    } else {
+                                        Alert.alert('Info', 'Veuillez vérifier manuellement le commentaire ID: ' + item.cibleId);
+                                    }
+                                }}
+                            >
+                                <Ionicons name="eye" size={16} color="white" />
+                                <Text style={styles.actionBtnText}>Voir le contenu</Text>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.actionBtn, styles.btnError]}
+                                onPress={() => {
+                                    if (item.type === 'RECETTE') handleSupprimerRecette(item.cibleId);
+                                    else handleSupprimerCommentaire(item.cibleId);
+                                }}
+                            >
+                                <Ionicons name="trash" size={16} color="white" />
+                                <Text style={styles.actionBtnText}>Supprimer</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                ))
+            )}
+        </View>
+    );
+
     const renderRefusModal = () => (
         <Modal visible={refusModalVisible} transparent animationType="slide">
             <View style={styles.modalOverlay}>
@@ -840,6 +920,7 @@ const AdminDashboard = ({ navigation, route }) => {
                 {activeTab === 'utilisateurs' && renderUtilisateursTab()}
                 {activeTab === 'commentaires' && renderCommentairesTab()}
                 {activeTab === 'modifications' && renderModificationsTab()}
+                {activeTab === 'signalements' && renderSignalementsTab()}
             </ScrollView>
             {renderRefusModal()}
             <SideMenu visible={showMenu} onClose={() => setShowMenu(false)} navigation={navigation} />

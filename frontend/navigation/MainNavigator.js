@@ -8,6 +8,7 @@ import Favoris from '../screens/Favoris';
 import AdminDashboard from '../screens/AdminDashboard';
 import Login from '../screens/Login';
 import Inscription from '../screens/Inscription';
+import Notifications from '../screens/Notifications';
 
 const Stack = createNativeStackNavigator();
 
@@ -27,6 +28,7 @@ const MainNavigator = () => {
             <Stack.Screen name="AdminDashboard" component={AdminDashboard} />
             <Stack.Screen name="Login" component={Login} />
             <Stack.Screen name="Inscription" component={Inscription} />
+            <Stack.Screen name="Notifications" component={Notifications} />
         </Stack.Navigator>
     );
 };

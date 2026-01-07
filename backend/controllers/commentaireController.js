@@ -1,5 +1,6 @@
 const Commentaire = require('../models/Commentaire');
 const Recette = require('../models/Recette');
+const notificationController = require('./notificationController');
 
 // @desc    Obtenir les commentaires d'une recette
 // @route   GET /api/commentaires/:recetteId
@@ -21,7 +22,7 @@ const getCommentairesByRecette = async (req, res) => {
 // @access  Privé
 const addCommentaire = async (req, res) => {
     try {
-        const { contenu, note } = req.body;
+        const { contenu, note, parentCommentaire } = req.body;
         // Accepter soit recetteId (convention backend) soit recette (envoyé par le front)
         const recetteId = req.body.recetteId || req.body.recette;
 
@@ -34,10 +35,39 @@ const addCommentaire = async (req, res) => {
             recette: recetteId,
             contenu,
             note,
+            parentCommentaire: parentCommentaire || null
         });
 
         // On peuple l'utilisateur pour le renvoi direct au front
         await commentaire.populate('utilisateur', 'nom prenom');
+
+        // Envoyer une notification à l'auteur de la recette
+        const recette = await Recette.findById(recetteId);
+        if (recette && recette.auteur.toString() !== req.user._id.toString()) {
+            await notificationController.creerNotification(
+                recette.auteur,
+                req.user._id,
+                'NOUVEAU_COMMENTAIRE',
+                'Nouveau commentaire',
+                `${req.user.prenom} ${req.user.nom} a commenté votre recette "${recette.titre}"`,
+                recette._id
+            );
+        }
+
+        // Envoyer une notification si c'est une réponse
+        if (parentCommentaire) {
+            const parent = await Commentaire.findById(parentCommentaire);
+            if (parent && parent.utilisateur.toString() !== req.user._id.toString()) {
+                await notificationController.creerNotification(
+                    parent.utilisateur,
+                    req.user._id,
+                    'NOUVEAU_COMMENTAIRE',
+                    'Nouvelle réponse',
+                    `${req.user.prenom} ${req.user.nom} a répondu à votre commentaire.`,
+                    recetteId
+                );
+            }
+        }
 
         res.status(201).json(commentaire);
     } catch (error) {

@@ -127,6 +127,20 @@ export const demandeModificationAPI = {
   rejeter: (id, raisonRefus) => api.patch(`/demandes-modification/${id}/rejeter`, { raisonRefus }),
 };
 
+// Notification API
+export const notificationAPI = {
+  getMesNotifications: () => api.get('/notifications'),
+  marquerCommeLue: (id) => api.put(`/notifications/marquer-lue/${id}`),
+  toutMarquerCommeLues: () => api.put('/notifications/tout-marquer-lu'),
+  supprimer: (id) => api.delete(`/notifications/${id}`),
+};
+
+// Signalement API
+export const signalementAPI = {
+  creer: (data) => api.post('/signalements', data),
+  getAll: () => api.get('/signalements/admin/all'),
+};
+
 // Fonction pour définir le token d'authentification
 export const setAuthToken = (token) => {
   if (token) {
