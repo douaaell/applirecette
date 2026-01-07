@@ -8,21 +8,25 @@ exports.creerSignalement = async (req, res) => {
         const signalement = await Signalement.create({
             type,
             cibleId,
-            auteur: req.user._id,
-            motif
+            motif,
+            auteur: req.user._id
         });
 
-        // Notifier tous les admins
-        const admins = await Utilisateur.find({ role: 'ADMIN' });
-        for (const admin of admins) {
-            await notificationController.creerNotification(
-                admin._id,
-                req.user._id,
-                'SYSTEME',
-                'Nouveau contenu signalé',
-                `Un ${type.toLowerCase()} a été signalé pour : ${motif}`,
-                type === 'RECETTE' ? cibleId : null
-            );
+        // Notifier les administrateurs
+        try {
+            const admins = await Utilisateur.find({ role: 'ADMIN' });
+            for (const admin of admins) {
+                await notificationController.creerNotification(
+                    admin._id,
+                    req.user._id,
+                    'SYSTEME',
+                    'Nouveau signalement',
+                    `Un nouveau signalement pour ${type} a été créé par ${req.user.prenom} ${req.user.nom} pour le motif : ${motif}`,
+                    type === 'RECETTE' ? cibleId : null
+                );
+            }
+        } catch (notifyError) {
+            console.error('Erreur lors de la notification des admins:', notifyError);
         }
 
         res.status(201).json(signalement);
@@ -33,7 +37,9 @@ exports.creerSignalement = async (req, res) => {
 
 exports.getAllSignalements = async (req, res) => {
     try {
-        const signalements = await Signalement.find({}).populate('auteur', 'nom prenom');
+        const signalements = await Signalement.find()
+            .populate('auteur', 'nom prenom')
+            .sort({ date: -1 });
         res.json(signalements);
     } catch (error) {
         res.status(500).json({ message: error.message });

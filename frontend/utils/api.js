@@ -7,8 +7,8 @@ const getApiBaseUrl = () => {
     return 'http://localhost:5000/api';
   }
 
-  // Pour mobile (avec connection par câble USB et ADB reverse)
-  return process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5000/api';
+  // Pour mobile, utiliser l'IP de votre PC (192.168.194.25) car localhost pointe vers le téléphone lui-même
+  return process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.194.25:5000/api';
 };
 
 export const api = axios.create({

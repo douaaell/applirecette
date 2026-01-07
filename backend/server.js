@@ -38,18 +38,6 @@ connectDB()
     const server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`🚀 Serveur démarré sur le port ${PORT}`);
 
-      // Afficher l'adresse IP pour l'accès mobile si disponible
-      const { networkInterfaces } = require('os');
-      const nets = networkInterfaces();
-
-      for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-          // Skip over non-IPv4 and internal addresses
-          if (net.family === 'IPv4' && !net.internal) {
-            console.log(`📱 Accessible depuis votre téléphone sur: http://${net.address}:${PORT}`);
-          }
-        }
-      }
     });
   })
   .catch(err => {

@@ -10,22 +10,18 @@ const signalementSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         required: true
     },
+    motif: {
+        type: String,
+        required: true
+    },
     auteur: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Utilisateur',
         required: true
     },
-    motif: {
-        type: String,
-        required: true
-    },
     date: {
         type: Date,
         default: Date.now
-    },
-    resolu: {
-        type: Boolean,
-        default: false
     }
 });
 

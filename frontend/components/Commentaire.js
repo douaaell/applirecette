@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, SPACING, SIZES, FONTS } from '../utils/constants';
 
@@ -16,22 +16,28 @@ const Commentaire = ({
     const [isSaving, setIsSaving] = useState(false);
     const [editContent, setEditContent] = useState(commentaire.contenu);
 
-    const canEdit = currentUserId && commentaire.utilisateur?._id && currentUserId === commentaire.utilisateur._id;
+    const canEdit = currentUserId && commentaire.utilisateur?._id && currentUserId.toString() === commentaire.utilisateur._id.toString();
     const canDelete = canEdit || isAdmin;
 
     const handleDelete = () => {
-        Alert.alert(
-            'Supprimer le commentaire',
-            'Êtes-vous sûr de vouloir supprimer ce commentaire ?',
-            [
-                { text: 'Annuler', style: 'cancel' },
-                {
-                    text: 'Supprimer',
-                    style: 'destructive',
-                    onPress: () => onDelete(commentaire._id),
-                },
-            ]
-        );
+        if (Platform.OS === 'web') {
+            if (window.confirm('Supprimer ce commentaire ?')) {
+                onDelete(commentaire._id);
+            }
+        } else {
+            Alert.alert(
+                'Supprimer le commentaire',
+                'Êtes-vous sûr de vouloir supprimer ce commentaire ?',
+                [
+                    { text: 'Annuler', style: 'cancel' },
+                    {
+                        text: 'Supprimer',
+                        style: 'destructive',
+                        onPress: () => onDelete(commentaire._id),
+                    },
+                ]
+            );
+        }
     };
 
     const handleSave = async () => {
@@ -101,7 +107,11 @@ const Commentaire = ({
                         </TouchableOpacity>
                     )}
                     {canDelete && (
-                        <TouchableOpacity onPress={handleDelete} style={styles.actionIconButton}>
+                        <TouchableOpacity
+                            onPress={handleDelete}
+                            style={styles.actionIconButton}
+                            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+                        >
                             <Ionicons name="trash-outline" size={20} color="#E53935" />
                         </TouchableOpacity>
                     )}
@@ -210,8 +220,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
     },
     actionIconButton: {
-        padding: 5,
-        marginLeft: 5,
+        padding: 10,
+        marginLeft: 2,
     },
     starsRow: {
         flexDirection: 'row',

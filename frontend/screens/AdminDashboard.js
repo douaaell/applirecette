@@ -136,6 +136,8 @@ const AdminDashboard = ({ navigation, route }) => {
         }
     };
 
+
+
     const handleRefresh = async () => {
         setRefreshing(true);
         await loadAllData();
@@ -458,6 +460,7 @@ const AdminDashboard = ({ navigation, route }) => {
                             Signalements {signalements.length > 0 ? `(${signalements.length})` : ''}
                         </Text>
                     </TouchableOpacity>
+
                 </ScrollView>
             </View>
         </View>
@@ -839,7 +842,7 @@ const AdminDashboard = ({ navigation, route }) => {
                                 </Text>
                             </View>
                             <View style={[styles.modBadge, styles.badgeError]}>
-                                <Text style={styles.textError}>A vériier</Text>
+                                <Text style={styles.textError}>A vérifier</Text>
                             </View>
                         </View>
 
@@ -873,6 +876,9 @@ const AdminDashboard = ({ navigation, route }) => {
             )}
         </View>
     );
+
+
+
 
     const renderRefusModal = () => (
         <Modal visible={refusModalVisible} transparent animationType="slide">

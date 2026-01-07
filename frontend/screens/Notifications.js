@@ -156,7 +156,7 @@ const Notifications = () => {
 
             {/* Custom Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity onPress={() => navigation.navigate('Accueil')} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color={COLORS.text} />
                     <Text style={styles.backText}>Retour</Text>
                 </TouchableOpacity>

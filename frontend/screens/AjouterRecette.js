@@ -230,8 +230,8 @@ const AjouterRecette = ({ navigation, route }) => {
 
                 console.log('✅ Demande créée:', response.data);
 
-                // Naviguer d'abord
-                navigation.navigate('DetailRecette', { recetteId: editingRecette._id });
+                // Naviguer vers l'Accueil
+                navigation.navigate('Accueil');
 
                 // Puis afficher le message (qui s'affichera par-dessus la nouvelle page)
                 setTimeout(() => {
@@ -249,10 +249,7 @@ const AjouterRecette = ({ navigation, route }) => {
                     {
                         text: 'OK', onPress: () => {
                             console.log('📤 Navigation vers Accueil...');
-                            navigation.reset({
-                                index: 0,
-                                routes: [{ name: 'Accueil' }],
-                            });
+                            navigation.navigate('Accueil');
                         }
                     }
                 ]);
@@ -484,7 +481,7 @@ const AjouterRecette = ({ navigation, route }) => {
 
                     {/* Actions */}
                     <View style={styles.actionsRow}>
-                        <TouchableOpacity onPress={() => navigation.goBack()}>
+                        <TouchableOpacity onPress={() => navigation.navigate('Accueil')}>
                             <Text style={styles.cancelLinkText}>Annuler</Text>
                         </TouchableOpacity>
                         <TouchableOpacity

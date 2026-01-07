@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
     View,
     Text,
@@ -32,9 +32,10 @@ const DetailRecette = ({ route, navigation }) => {
         if (!recetteId || recetteId === 'undefined') {
             console.error('❌ DetailRecette: recetteId manquant ou invalide:', recetteId);
             Alert.alert('Erreur', 'Recette introuvable');
-            navigation.goBack();
+            navigation.navigate('Accueil');
         }
     }, [recetteId, navigation]);
+    const commentInputRef = useRef(null);
     const dispatch = useDispatch();
     const { isAuthenticated, user, role } = useSelector((state) => state.auth);
 
@@ -80,7 +81,7 @@ const DetailRecette = ({ route, navigation }) => {
         } catch (error) {
             console.error('Erreur chargement recette:', error);
             Alert.alert('Erreur', 'Impossible de charger la recette');
-            navigation.goBack();
+            navigation.navigate('Accueil');
         } finally {
             setLoading(false);
         }
@@ -164,36 +165,32 @@ const DetailRecette = ({ route, navigation }) => {
     };
 
     const handleDeleteComment = async (commentId) => {
-        const executeDelete = async () => {
-            try {
-                await commentaireAPI.deleteCommentaire(commentId);
-                loadCommentaires();
-                loadRecette();
-                if (Platform.OS === 'web') {
-                    // Feedback discret sur web
-                } else {
-                    Alert.alert('Succès', 'Commentaire supprimé');
-                }
-            } catch (error) {
-                const msg = MESSAGES.ERREUR_GENERALE;
-                if (Platform.OS === 'web') alert('Erreur: ' + msg);
-                else Alert.alert('Erreur', msg);
-            }
-        };
+        try {
+            console.log('🗑️ Tentative de suppression du commentaire:', commentId);
 
-        if (Platform.OS === 'web') {
-            if (window.confirm('Supprimer votre commentaire ?')) {
-                await executeDelete();
+            // Mise à jour optimiste pour l'instantanéité
+            setCommentaires(prev => prev.filter(c => c._id !== commentId));
+
+            await commentaireAPI.deleteCommentaire(commentId);
+
+            // Petit délai pour laisser le temps au serveur/DB de se mettre à jour
+            setTimeout(async () => {
+                await loadCommentaires();
+                await loadRecette();
+            }, 500);
+
+            if (Platform.OS !== 'web') {
+                Alert.alert('Succès', 'Commentaire supprimé');
             }
-        } else {
-            Alert.alert(
-                'Confirmer',
-                'Supprimer votre commentaire ?',
-                [
-                    { text: 'Annuler', style: 'cancel' },
-                    { text: 'Supprimer', style: 'destructive', onPress: executeDelete }
-                ]
-            );
+        } catch (error) {
+            console.error('❌ Erreur suppression commentaire:', error);
+            const errorMsg = error.response?.data?.message || error.message || MESSAGES.ERREUR_GENERALE;
+
+            // Recharger pour restaurer en cas d'erreur
+            await loadCommentaires();
+
+            if (Platform.OS === 'web') alert('Erreur: ' + errorMsg);
+            else Alert.alert('Erreur', errorMsg);
         }
     };
 
@@ -289,7 +286,7 @@ const DetailRecette = ({ route, navigation }) => {
             await recetteAPI.validerRecette(recetteId);
             Alert.alert('Succès', 'Recette validée avec succès');
             dispatch(fetchRecettes()); // Refresh list
-            navigation.goBack();
+            navigation.navigate('Accueil');
         } catch (error) {
             Alert.alert('Erreur', 'Impossible de valider la recette');
         }
@@ -309,7 +306,7 @@ const DetailRecette = ({ route, navigation }) => {
                             await recetteAPI.refuserRecette(recetteId, raison || 'Non conforme');
                             Alert.alert('Succès', 'Recette refusée');
                             dispatch(fetchRecettes());
-                            navigation.goBack();
+                            navigation.navigate('Accueil');
                         } catch (error) {
                             Alert.alert('Erreur', 'Impossible de refuser');
                         }
@@ -338,7 +335,7 @@ const DetailRecette = ({ route, navigation }) => {
                 }
 
                 dispatch(fetchRecettes());
-                navigation.goBack();
+                navigation.navigate('Accueil');
             } catch (e) {
                 console.error('❌ Erreur suppression:', e);
                 const errorMsg = e.response?.data?.message || e.message;
@@ -363,7 +360,7 @@ const DetailRecette = ({ route, navigation }) => {
                     Alert.alert('Succès', msg);
                 }
 
-                navigation.goBack();
+                navigation.navigate('Accueil');
             } catch (e) {
                 console.error('Erreur création demande suppression:', e);
                 const errorMsg = 'Impossible d\'envoyer la demande de suppression';
@@ -451,7 +448,7 @@ const DetailRecette = ({ route, navigation }) => {
                     <View style={styles.imageOverlay} />
 
                     <View style={styles.headerButtons}>
-                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate('Accueil')}>
                             <Ionicons name="arrow-back" size={24} color="white" />
                         </TouchableOpacity>
                         <TouchableOpacity style={styles.menuButton} onPress={() => setShowMenu(true)}>
@@ -610,7 +607,7 @@ const DetailRecette = ({ route, navigation }) => {
                                 {replyTo && (
                                     <View style={styles.replyIndicatorHeader}>
                                         <Text style={styles.replyIndicatorText}>
-                                            Réponse à {replyTo.utilisateur.prenom}
+                                            Réponse à {replyTo.utilisateur?.prenom || 'Utilisateur'}
                                         </Text>
                                         <TouchableOpacity onPress={() => { setReplyTo(null); setCommentText(''); }}>
                                             <Ionicons name="close-circle" size={18} color={COLORS.textMuted} />
@@ -618,6 +615,7 @@ const DetailRecette = ({ route, navigation }) => {
                                     </View>
                                 )}
                                 <TextInput
+                                    ref={commentInputRef}
                                     style={styles.inlineInput}
                                     placeholder={replyTo ? "Écrivez votre réponse..." : "Partagez votre avis sur cette recette..."}
                                     placeholderTextColor="#999"
@@ -673,6 +671,8 @@ const DetailRecette = ({ route, navigation }) => {
                                             setReplyTo(comment);
                                             const name = comment.utilisateur?.prenom || 'Utilisateur';
                                             setCommentText(`@${name} `);
+                                            // Focus the input
+                                            setTimeout(() => commentInputRef.current?.focus(), 100);
                                         }}
                                     />
                                 </View>

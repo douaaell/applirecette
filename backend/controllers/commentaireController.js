@@ -126,6 +126,10 @@ const deleteCommentaire = async (req, res) => {
         }
 
         // Vérifier droits : Auteur ou Admin
+        console.log('👤 Tentative suppression par user ID:', req.user._id);
+        console.log('📝 Auteur du commentaire ID:', commentaire.utilisateur);
+        console.log('🛡️ Rôle utilisateur:', req.user.role);
+
         if (commentaire.utilisateur.toString() === req.user._id.toString() || req.user.role === 'ADMIN') {
             await commentaire.deleteOne();
             res.json({ message: 'Commentaire supprimé' });
