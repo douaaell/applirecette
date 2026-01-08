@@ -96,7 +96,6 @@ const addRecette = async (req, res) => {
             console.error('Erreur lors de la notification des admins:', notifyError);
         }
 
-        // console.log('✅ Recette sauvegardée dans MongoDB ! ID:', createdRecette._id);
         res.status(201).json(createdRecette);
     } catch (error) {
         console.error('Erreur lors de l\'ajout de la recette:', error);
@@ -160,7 +159,6 @@ const validerRecette = async (req, res) => {
             // Sécurité absolue : si req.body est null/undefined, on utilise un objet vide
             const body = req.body || {};
 
-            // console.log(`🔍 Validation Recette ${req.params.id} - Body reçu:`, body);
 
             // Si le statut est fourni, l'utiliser, sinon 'APPROUVEE' par défaut
             if (body && body.statut) {
@@ -222,7 +220,6 @@ const validerRecette = async (req, res) => {
                 }
             }
 
-            // console.log('✅ Recette validée/mise à jour:', updatedRecette?.statut);
             res.json(updatedRecette);
         } else {
             res.status(404).json({ message: 'Recette non trouvée' });
@@ -237,12 +234,9 @@ const validerRecette = async (req, res) => {
 // @access  Privé
 const getMesRecettes = async (req, res) => {
     try {
-        // console.log(`📊 getMesRecettes - Recherche pour utilisateur ID: ${req.user._id}`);
         const recettes = await Recette.find({ auteur: req.user._id })
             .populate('auteur', 'nom prenom')
             .sort({ dateCreation: -1 });
-        // console.log(`📊 getMesRecettes - ${recettes.length} recette(s) trouvée(s) pour cet utilisateur`);
-        // console.log(`📊 getMesRecettes - Statuts:`, [...new Set(recettes.map(r => r.statut))]);
         res.json(recettes);
     } catch (error) {
         console.error('❌ Erreur getMesRecettes:', error);
@@ -255,7 +249,6 @@ const getMesRecettes = async (req, res) => {
 // @access  Privé (Auteur ou Admin)
 const updateRecette = async (req, res) => {
     try {
-        // console.log('📝 Modification recette - ID:', req.params.id);
 
         const recette = await Recette.findById(req.params.id);
         if (!recette) {
@@ -311,7 +304,6 @@ const updateRecette = async (req, res) => {
         }
 
         const updatedRecette = await recette.save();
-        // console.log('✅ Recette modifiée avec succès ! ID:', updatedRecette._id);
         res.json(updatedRecette);
     } catch (error) {
         console.error('❌ Erreur modification recette:', error);
@@ -328,9 +320,6 @@ const testRecettes = async (req, res) => {
         const approuvees = await Recette.find({ statut: 'APPROUVEE' });
         const enAttente = await Recette.find({ statut: 'EN_ATTENTE' });
 
-        // console.log('📊 Test - Toutes les recettes:', toutes.length);
-        // console.log('📊 Test - Recettes approuvées:', approuvees.length);
-        // console.log('📊 Test - Recettes en attente:', enAttente.length);
 
         res.json({
             total: toutes.length,

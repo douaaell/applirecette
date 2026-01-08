@@ -45,3 +45,12 @@ exports.getAllSignalements = async (req, res) => {
         res.status(500).json({ message: error.message });
     }
 };
+
+exports.supprimerSignalement = async (req, res) => {
+    try {
+        await Signalement.findByIdAndDelete(req.params.id);
+        res.json({ message: 'Signalement supprimé' });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};

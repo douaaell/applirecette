@@ -12,8 +12,9 @@ const options = {
 const connectDB = async () => {
   try {
     await mongoose.connect(MONGODB_URI, options);
-    console.log(`✅ Connecté à MongoDB: localhost`);
+    console.log(`✅ Connecté à MongoDB: ${mongoose.connection.host}`);
     console.log(`🗂️  Base de données: ${mongoose.connection.name}`);
+
     return mongoose.connection;
   } catch (error) {
     console.error(`❌ Erreur de connexion à MongoDB: ${error.message}`);

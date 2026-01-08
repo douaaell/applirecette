@@ -69,19 +69,16 @@ const protect = async (req, res, next) => {
             await utilisateur.save();
 
             // Vérifier que le rôle est préservé
-            // console.log(`✅ Utilisateur existant mis à jour, rôle: ${utilisateur.role} (était: ${roleAvant})`);
             if (utilisateur.role !== roleAvant) {
                 console.error(`❌ ERREUR CRITIQUE: Le rôle a changé de ${roleAvant} à ${utilisateur.role}`);
                 // Forcer la restauration du rôle original
                 utilisateur.role = roleAvant;
                 await utilisateur.save();
-                // console.log(`✅ Rôle restauré à: ${utilisateur.role}`);
             }
         }
 
         // S'assurer que req.user contient bien le rôle
         req.user = utilisateur;
-        // console.log(`📋 Utilisateur final pour req.user, rôle: ${req.user.role}`);
     };
 
     try {

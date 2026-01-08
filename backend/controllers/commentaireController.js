@@ -79,7 +79,7 @@ const addCommentaire = async (req, res) => {
 // @route   PUT /api/commentaires/:id
 // @access  Privé (Auteur)
 const updateCommentaire = async (req, res) => {
-    console.log('PUT /api/commentaires/' + req.params.id, req.body);
+
     try {
         const { contenu, note } = req.body;
         const commentaire = await Commentaire.findById(req.params.id);
@@ -117,7 +117,7 @@ const updateCommentaire = async (req, res) => {
 // @route   DELETE /api/commentaires/:id
 // @access  Privé (Auteur ou Admin)
 const deleteCommentaire = async (req, res) => {
-    console.log('DELETE /api/commentaires/' + req.params.id);
+
     try {
         const commentaire = await Commentaire.findById(req.params.id);
 
@@ -126,9 +126,9 @@ const deleteCommentaire = async (req, res) => {
         }
 
         // Vérifier droits : Auteur ou Admin
-        console.log('👤 Tentative suppression par user ID:', req.user._id);
-        console.log('📝 Auteur du commentaire ID:', commentaire.utilisateur);
-        console.log('🛡️ Rôle utilisateur:', req.user.role);
+
+
+
 
         if (commentaire.utilisateur.toString() === req.user._id.toString() || req.user.role === 'ADMIN') {
             await commentaire.deleteOne();

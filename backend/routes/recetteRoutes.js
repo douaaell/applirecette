@@ -14,23 +14,21 @@ const {
 const { protect, adminOnly } = require('../middlewares/authMiddleware');
 const upload = require('../middlewares/uploadMiddleware');
 
-// Public
-router.get('/test', testRecettes); // Test endpoint - DOIT ÊTRE AVANT /:id
-router.get('/', getRecettes);
-router.get('/search', getRecettes); // Alias pour search
+// 1. ROUTES ADMIN (Spécifiques d'abord)
+router.get('/admin/all', protect, adminOnly, getAllRecettesAdmin);
+router.patch('/:id/valider', protect, adminOnly, validerRecette);
+router.patch('/:id/refuser', protect, adminOnly, validerRecette);
 
-// Privé (Utilisateur) - PLACÉ AVANT /:id
+// 2. ROUTES UTILISATEUR (Avant :id)
 router.get('/mes-recettes', protect, getMesRecettes);
+router.get('/test', testRecettes);
+router.get('/search', getRecettes);
 
+// 3. ROUTES GÉNÉRIQUES (:id en dernier)
+router.get('/', getRecettes);
 router.get('/:id', getRecetteById);
-
-// Privé (Utilisateur) - Actions
 router.post('/', protect, upload.single('image'), addRecette);
 router.put('/:id', protect, upload.single('image'), updateRecette);
 router.delete('/:id', protect, deleteRecette);
-
-// Privé (Admin)
-router.get('/admin/all', protect, adminOnly, getAllRecettesAdmin);
-router.patch('/:id/valider', protect, adminOnly, validerRecette);
 
 module.exports = router;
