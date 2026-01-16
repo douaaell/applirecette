@@ -6,16 +6,19 @@ const getApiBaseUrl = () => {
   return 'http://localhost:5000/api';
 };
 
+//  On configure ici l'adresse du serveur et le temps d'attente maximum
 export const api = axios.create({
   baseURL: getApiBaseUrl(),
   timeout: 15000,
 });
 
+//  Cette fonction sert à "coller" le badge de sécurité (token) sur chaque appel au serveur
 export const setAuthToken = (token) => {
   if (token) api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
   else delete api.defaults.headers.common['Authorization'];
 };
 
+//  Regroupe tout ce qui touche aux utilisateurs et aux favoris
 export const utilisateurAPI = {
   getProfil: () => api.get('/utilisateurs/profil'),
   syncUtilisateur: (data) => api.post('/utilisateurs/sync', data),
@@ -30,6 +33,7 @@ export const utilisateurAPI = {
   removeFavori: (recetteId) => api.delete(`/utilisateurs/favoris/${recetteId}`),
 };
 
+//  Regroupe tout ce qui concerne les recettes (voir, ajouter, valider...)
 export const recetteAPI = {
   getAll: () => api.get('/recettes'),
   getById: (id) => api.get(`/recettes/${id}`),

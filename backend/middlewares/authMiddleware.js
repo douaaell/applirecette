@@ -1,6 +1,7 @@
 const admin = require('../config/firebaseAdmin');
 const Utilisateur = require('../models/Utilisateur');
 
+// 🛡️ C'est le garde à l'entrée : il vérifie le token Firebase avant de laisser passer une requête
 const protect = async (req, res, next) => {
     let token;
 
@@ -118,6 +119,7 @@ const protect = async (req, res, next) => {
     }
 };
 
+// 👮 Vérifie si l'utilisateur est bien un administrateur pour les pages sensibles
 const adminOnly = (req, res, next) => {
     if (req.user && req.user.role === 'ADMIN') {
         next();

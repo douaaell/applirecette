@@ -6,6 +6,7 @@ const Commentaire = require('../models/Commentaire'); // if needed
 // @desc    Récupérer toutes les recettes (filtres possibles)
 // @route   GET /api/recettes
 // @access  Public
+// 🌍 Récupère la liste des recettes approuvées avec des filtres (catégorie, temps, etc.)
 const getRecettes = async (req, res) => {
     try {
         const { categorie, temps, difficulte, search } = req.query;
@@ -36,6 +37,7 @@ const getRecettes = async (req, res) => {
 // @desc    Ajouter une recette
 // @route   POST /api/recettes
 // @access  Privé
+// 📝 Crée une nouvelle recette et l'envoie en attente de validation par l'admin
 const addRecette = async (req, res) => {
     try {
         // Gestion de l'image (fichier uploadé ou URL fournie)
@@ -106,6 +108,7 @@ const addRecette = async (req, res) => {
 // @desc    Récupérer une recette par ID
 // @route   GET /api/recettes/:id
 // @access  Public
+// 🔍 Affiche les détails d'une seule recette et compte le nombre de vues
 const getRecetteById = async (req, res) => {
     try {
         const recette = await Recette.findById(req.params.id).populate('auteur', 'nom prenom');
@@ -152,6 +155,7 @@ const getAllRecettesAdmin = async (req, res) => {
 // @desc    Valider/Refuser une recette (ADMIN)
 // @route   PATCH /api/recettes/:id/valider
 // @access  Privé/Admin
+// ✅ Permet à l'admin de valider ou de refuser une recette soumise
 const validerRecette = async (req, res) => {
     try {
         const recette = await Recette.findById(req.params.id);
@@ -247,6 +251,7 @@ const getMesRecettes = async (req, res) => {
 // @desc    Modifier une recette
 // @route   PUT /api/recettes/:id
 // @access  Privé (Auteur ou Admin)
+// ✏️ Modifie une recette existante (réservé à l'auteur ou à l'admin)
 const updateRecette = async (req, res) => {
     try {
 
@@ -337,6 +342,7 @@ const testRecettes = async (req, res) => {
 // @desc    Supprimer une recette
 // @route   DELETE /api/recettes/:id
 // @access  Privé (Admin ou auteur)
+// 🗑️ Supprime définitivement une recette de la base de données
 const deleteRecette = async (req, res) => {
     try {
         const recette = await Recette.findById(req.params.id);

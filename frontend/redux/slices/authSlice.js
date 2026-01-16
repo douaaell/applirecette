@@ -81,6 +81,7 @@ export const toggleFavori = createAsyncThunk(
 );
 
 // Connexion
+//  Gère la connexion de l'utilisateur avec Firebase et récupère son profil depuis notre serveur
 export const login = createAsyncThunk(
     'auth/login',
     async ({ email, password }, { rejectWithValue }) => {
@@ -208,6 +209,7 @@ export const register = createAsyncThunk(
 );
 
 // Déconnexion
+// 🚪 Déconnecte l'utilisateur et vide le badge de sécurité (token)
 export const logout = createAsyncThunk(
     'auth/logout',
     async (_, { rejectWithValue }) => {

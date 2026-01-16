@@ -5,6 +5,7 @@ const Commentaire = require('../models/Commentaire');
 const admin = require('../config/firebaseAdmin');
 const notificationController = require('./notificationController');
 
+// 🔄 Cette fonction sert à créer ou mettre à jour un utilisateur dans notre BDD quand il se connecte avec Firebase
 const syncUser = async (req, res) => {
     if (!req.userFirebase || !req.userFirebase.uid) {
         return res.status(400).json({ message: 'Données utilisateur manquantes' });
@@ -45,6 +46,7 @@ const syncUser = async (req, res) => {
     }
 };
 
+// 👤 Récupère les infos complètes du profil qui est actuellement connecté
 const getProfil = async (req, res) => {
     if (req.user) {
         const utilisateurFrais = await Utilisateur.findById(req.user._id);
@@ -56,6 +58,7 @@ const getProfil = async (req, res) => {
     return res.status(404).json({ message: 'Utilisateur non trouvé' });
 };
 
+// ❤️ Va chercher la liste de toutes les recettes que l'utilisateur a mis en favoris
 const getFavoris = async (req, res) => {
     try {
         const user = await Utilisateur.findById(req.user._id).populate('favoris');
@@ -65,6 +68,7 @@ const getFavoris = async (req, res) => {
     }
 };
 
+// ➕ Ajoute une recette aux favoris et envoie une petite notification à l'auteur
 const addFavori = async (req, res) => {
     try {
         const { recetteId } = req.body;
@@ -107,6 +111,7 @@ const removeFavori = async (req, res) => {
 };
 
 
+// 📊 Calcule les chiffres clés (utilisateurs, recettes...) pour le dashboard de l'admin
 const getStats = async (req, res) => {
     try {
         const totalUtilisateurs = await Utilisateur.countDocuments();
@@ -128,6 +133,7 @@ const getAllUtilisateurs = async (req, res) => {
     }
 };
 
+// 🛡️ Permet à l'admin de changer le rôle d'un utilisateur (passer de User à Admin par exemple)
 const changerRole = async (req, res) => {
     try {
         const { role } = req.body;

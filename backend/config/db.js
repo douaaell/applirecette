@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-// Configuration de la connexion MongoDB
+//  C'est ici qu'on configure la connexion à notre base de données MongoDB
 const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/recetteApp';
 
 // Options de connexion (Mongoose 7+)

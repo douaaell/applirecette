@@ -5,6 +5,7 @@ const notificationController = require('./notificationController');
 // @desc    Obtenir les commentaires d'une recette
 // @route   GET /api/commentaires/:recetteId
 // @access  Public
+//  Cette fonction récupère tous les commentaires d'une recette pour les afficher
 const getCommentairesByRecette = async (req, res) => {
     try {
         const commentaires = await Commentaire.find({ recette: req.params.recetteId })
@@ -20,6 +21,7 @@ const getCommentairesByRecette = async (req, res) => {
 // @desc    Ajouter un commentaire
 // @route   POST /api/commentaires
 // @access  Privé
+// Permet à un utilisateur de poster un nouveau commentaire sur une recette
 const addCommentaire = async (req, res) => {
     try {
         const { contenu, note, parentCommentaire } = req.body;
